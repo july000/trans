@@ -1,3 +1,0 @@
-/data/trans/build_release/CMakeFiles/rebuild_cache.dir
-/data/trans/build_release/CMakeFiles/Trans.dir
-/data/trans/build_release/CMakeFiles/edit_cache.dir
