@@ -12,7 +12,7 @@
 #include "mqio.h"
 #include "timer.hpp"
 // #include "zd/ZDBOX2WebSocketAPI.h"
-#include "websocket_client.h"
+#include "client.h"
 
 // extern void run_websocket_client(SendAndConsumerArgs &args);
 // extern void ConsumeQueueData(simapi &api);
@@ -21,6 +21,7 @@ int main(int argc, char* argv[])
 {
   SendAndConsumerArgs args;
   websocket_client wsC;
+  httpclient httpCli(args);
 
   simapi *p_api = nullptr;
   std::thread websocket_client_reverse_control = std::thread(std::bind(&websocket_client::ReverseControl, &wsC, std::ref(p_api), std::ref(args)));
@@ -143,8 +144,7 @@ int main(int argc, char* argv[])
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
   api.SimAPI_TerminateSimOneAPI();
-  httpclient http_cli_stop_sim(args);
-  http_cli_stop_sim.do_post("", args.http_box_stop_url);
+  httpCli.do_post("", args.http_box_stop_url);
   std::cout << "=============================== stop all simulator" << std::endl;
   return 0;
 }

@@ -7,7 +7,7 @@
 #include "nlohmann/json.hpp"
 #include <queue>
 #include <mutex>
-#include "zd/ZDBOX2WebSocketAPI.h"
+#include "zd/ZDAPI.h"
 #include "zd/MsgStruct.h"
 #include "simapi.h"
 #include "mqio.h"

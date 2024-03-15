@@ -2,9 +2,12 @@
 #define ZDBOX_H_
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
+#include "http_client.h"
+#include "mqio.h"
+
 typedef websocketpp::client<websocketpp::config::asio_client> client;
 
-namespace ZDBOX
+namespace ZDAPI
 {
   class WebsocketAPI
   {
@@ -23,6 +26,32 @@ namespace ZDBOX
     private:
       std::mutex mMutex_Id;
       int reqID = 1;
+  };
+
+  class BoxAPI
+  {
+    public:
+      BoxAPI(SendAndConsumerArgs& args);
+      ~BoxAPI();
+
+      void DeleteSimulation();
+      void StopAllSImulation();
+      void StartSimulation();
+      void StopSImulation();
+      void ActivateMsgID();
+      void ModifyMsgData();
+
+    private:
+      std::string content_type;
+      std::string box_start_url;
+      std::string box_stop_url;
+      std::string box_activate_url;
+      std::string modify_data_url;
+      std::string init_steering_url;
+      std::string clear_simulator_url;
+      std::string set_count_url;
+      std::string set_cycle_url;
+
   };
 }
 

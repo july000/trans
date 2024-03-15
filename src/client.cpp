@@ -1,6 +1,6 @@
 #include <queue>
 #include "http_client.h"
-#include "websocket_client.h"
+#include "client.h"
 #include "PID.h"
 
 // websocket
@@ -14,7 +14,7 @@ bool websocket_client::mCruise_valid;
 std::mutex mMutex_control;
 std::mutex mMutex_signal_light;
 // std::mutex mMutex_mDrivingLever;
-ZDBOX::WebsocketAPI zdConsumer;
+ZDAPI::WebsocketAPI zdConsumer;
 
 std::priority_queue<Control_t, std::vector<Control_t>, CompareControl> websocket_client::myControlQueue;
 std::priority_queue<SignalLight_t, std::vector<SignalLight_t>, CompareSignalLight> websocket_client::mySignalLightQueue;

@@ -1,8 +1,8 @@
-#include "zd/ZDBOX2WebSocketAPI.h"
+#include "zd/ZDAPI.h"
 #include "websocketpp/config/asio_no_tls_client.hpp"
 #include "websocketpp/client.hpp"
 
-namespace ZDBOX
+namespace ZDAPI
 {
     void WebsocketAPI::heartbeat(client *c, websocketpp::connection_hdl hdl)
     {
@@ -120,6 +120,57 @@ namespace ZDBOX
         }
         c->send(hdl, ctl, websocketpp::frame::opcode::text);
         // std::cout << "getRule req sent!" << std::endl;
+    }
+
+    BoxAPI::BoxAPI(SendAndConsumerArgs& args)
+    {
+        box_start_url = args.http_box_start_url;
+        box_stop_url = args.http_box_stop_url;
+        box_activate_url = args.http_box_activate_url;
+        modify_data_url = args.http_modify_data_url;
+        init_steering_url = args.http_init_steering_url;
+        clear_simulator_url = args.http_clear_simulator_url;
+        set_count_url = args.http_set_count_url;
+        set_cycle_url = args.http_set_cycle_url;
+    }
+
+    BoxAPI::~BoxAPI()
+    {
+    }
+
+    void BoxAPI::DeleteSimulation()
+    {
+
+    }
+
+    void DeleteSimulation()
+    {
+        
+    }
+
+    void StopAllSImulation()
+    {
+        
+    }
+
+    void StartSimulation()
+    {
+        
+    }
+
+    void StopSImulation()
+    {
+        
+    }
+
+    void ActivateMsgID()
+    {
+        
+    } 
+    
+    void ModifyMsgData()   
+    {
+        
     }
 }
 
