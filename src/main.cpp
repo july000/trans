@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
   httpclient httpCli(args);
 
   simapi *p_api = nullptr;
-  std::thread websocket_client_reverse_control = std::thread(std::bind(&websocket_client::ReverseControl, &wsC, std::ref(p_api), std::ref(args)));
+  std::thread websocket_client_reverse_control = std::thread(std::bind(&websocket_client::ReverseControl, &wsC, std::ref(httpCli), std::ref(p_api), std::ref(args)));
   simapi &&api = RunSimOneAPI(args);
   p_api = &api;
 

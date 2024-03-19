@@ -7,6 +7,17 @@
 
 typedef websocketpp::client<websocketpp::config::asio_client> client;
 
+
+namespace nlohmann {
+template <>
+struct adl_serializer<SIGNAL_t> {
+    static void to_json(json& j, const SIGNAL_t& item) {
+        // This tell the json library how to convert Person to json
+        j = json{{"name", item.name}, {"raw", item.raw}};
+    }
+};
+}// namespace nlohmann
+
 namespace ZDAPI
 {
   class WebsocketAPI
@@ -34,12 +45,18 @@ namespace ZDAPI
       BoxAPI(SendAndConsumerArgs& args);
       ~BoxAPI();
 
-      void DeleteSimulation();
-      void StopAllSImulation();
-      void StartSimulation();
-      void StopSImulation();
-      void ActivateMsgID();
-      void ModifyMsgData();
+      void deleteSimulation(httpclient& httpCli);
+      void startSimulation(httpclient& httpCli);
+      void stopAllSImulation(httpclient& httpCli);
+      void stopSimulation(httpclient& httpCli);
+      void createSimulation(httpclient& httpCli);
+      void activateMsgID(httpclient& httpCli);
+      void modifyMsgData(httpclient& httpCli);
+      void steeringQuitError(httpclient& httpCli);
+      void steeringReady(httpclient& httpCli); 
+      void steeringOn(httpclient& httpCli);
+      void steeringIniParam(httpclient& httpCli);
+      std::string modify_url(std::string ori_url, int number);
 
     private:
       std::string content_type;
@@ -51,6 +68,7 @@ namespace ZDAPI
       std::string clear_simulator_url;
       std::string set_count_url;
       std::string set_cycle_url;
+      std::string dbc_json;
 
   };
 }

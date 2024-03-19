@@ -82,117 +82,6 @@ double SteeringFollow(float currSteerSpd, float currSteerAngle, float targetAngl
     // spdPIDCalRst 最终计算出来的力
 }
 
-// http
-long long httpclient::getSystemTime()
-{
-    struct timeb t;
-    ftime(&t);
-    return 1000 * t.time + t.millitm;
-}
-
-httpclient::httpclient(SendAndConsumerArgs &args) : mCli(args.http_access_ip.c_str(), args.http_access_port)
-{
-    // #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
-    // 	httplib::SSLClient cli("localhost", 8080);
-    // 	cli.set_ca_cert_path(CA_CERT_FILE);
-    // 	cli.enable_server_certificate_verification(true);
-    // #else
-    // std::string ip = "10.66.9.244";
-    // int port = 15672;
-    // std::string user = "admin";
-    // std::string password = "admin";
-    // httplib::Client cli(ip.c_str(), port);
-    // mCli.set_basic_auth(args.http_user.c_str(), args.http_password.c_str());
-    // #endif
-    mContentType = args.http_content_type;
-    mHDS.insert({"Content-Type", "application/json"});
-    mHDS.insert({"User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"});
-    // log_payload.open("log_payload.txt", std::ios::trunc); // std::ios::app
-}
-httpclient::httpclient(std::string content_type, std::string ip, int port) : mCli(ip.c_str(), port)
-{
-    mContentType = content_type;
-    mHDS.insert({"Content-Type", "application/json"});
-    mHDS.insert({"User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"});
-}
-httpclient::~httpclient()
-{
-    // log_payload.close();
-}
-
-void httpclient::do_post(const std::string &data, const std::string &url)
-{
-    auto res = mCli.Post(url.c_str(), mHDS, data.c_str(), mContentType.c_str()); // "application/www-form-urlencoded" / "text/plain"  / "application/json"
-
-    if (res->status == 200)
-    {
-        // std::cout << "POST请求成功，响应内容为：" << res->body << std::endl;
-    }
-    else
-    {
-        std::cout << "POST请求失败，状态码：" << res->status << std::endl;
-    }
-
-    // log_payload << "payload sent: " << wrp_data.c_str() << "\n";
-    // auto res = cli.Post("/Post", data.c_str(), "text/plain"); // end_t = getSystemTime(); // log_payload << "------------ after sent: " << ntoString(end_t).c_str() << "\n";
-    // log_payload << "============ time_counter: " << ntoString(getSystemTime()).c_str() << "\n";
-    // log_payload.flush();
-}
-
-void httpclient::do_put(const std::string &data, const std::string &url)
-{
-    auto res = mCli.Put(url.c_str(), mHDS, data.c_str(), mContentType.c_str()); // "application/www-form-urlencoded" / "text/plain" / "application/json"
-
-    if (res->status == 200)
-    {
-        // std::cout << "PUT请求成功，响应内容为：" << res->body << std::endl;
-    }
-    else
-    {
-        std::cout << "PUT请求失败，状态码：" << res->status << std::endl;
-    }
-}
-void httpclient::do_get(const std::string &url, std::string& steering_angle, std::string& steering_speed)
-{
-    auto res = mCli.Get(url.c_str(), mHDS); // "application/www-form-urlencoded" / "text/plain" / "application/json"
-
-    if (res->status == 200)
-    {
-        // std::cout << "GET请求成功，响应内容为：" << res->body << std::endl;
-        std::string str = res->body;
-        str.erase(std::remove(str.begin(), str.end(), '\"' ), str.end());
-
-        // Parse the string
-        std::vector<string> result;
-        std::stringstream ss(str);
-        std::string token;
-        while (std::getline(ss, token, ',')) {
-            // Remove whitespaces and brackets from the token
-            token.erase(std::remove_if(token.begin(), token.end(), [](char c){ return c == ' ' || c == '[' || c == ']'; }), token.end());
-            result.push_back(token); // Convert string to integer and add to vector
-        }
-        steering_angle = result[0];
-        steering_speed = result[1];
-        // std::sscanf(res->body.c_str(), "[ %d, %d, %d ]", &num1, &num2, &num3);
-        // std::cout << "angle : " << steering_angle << ", steering_speed : " << steering_speed << std::endl;
-    }
-    else
-    {
-        std::cout << "GET请求失败，状态码：" << res->status << std::endl;
-    }
-}
-void httpclient::do_delete(const std::string& url)
-{
-    auto res = mCli.Delete(url.c_str(), mHDS); // "application/www-form-urlencoded" / "text/plain" / "application/json"
-    if (res->status == 200)
-    {
-        // std::cout << "Delete请求成功，响应内容为：" << res->body << std::endl;
-    }
-    else
-    {
-        std::cout << "Delete请求失败，状态码：" << res->status << std::endl;
-    }
-}
 
 bool CompareControl::operator()(const Control_t &s1, const Control_t &s2)
 {
@@ -1058,26 +947,8 @@ void websocket_client::sendHeartBeatASC(string& init_steering_url, httpclient& h
     }
 }
 
-namespace nlohmann {
-    template<>
-    struct adl_serializer<SIGNAL_t> {
-        static void to_json(json& j, const SIGNAL_t& item) {
-            j = json{{"name", item.name}, {"raw", item.raw}};
-        }
-    };
-}
 
 
-std::string modify_data_url(std::string ori_url, int number) {
-    std::string numberStr = std::to_string(number);
-    size_t startPos = ori_url.find("513");
-
-    if(startPos != std::string::npos)
-        ori_url.replace(startPos, 3, numberStr);
-
-    // std::cout << "New URL: " << ori_url << std::endl;
-    return ori_url;
-}
 
 void websocket_client::ConsumeQueueData(simapi &api, SendAndConsumerArgs &args)
 {
@@ -1250,7 +1121,7 @@ void websocket_client::run_websocket_client(SendAndConsumerArgs &args)
     c.run();
 }
 
-void websocket_client::ReverseControl(simapi *&p_api, SendAndConsumerArgs &args)
+void websocket_client::ReverseControl(httpclient& httpCli, simapi *&p_api, SendAndConsumerArgs &args)
 {
     static PID posPID, spdPID;
     posPID.SetPID(100, 0, 0);
@@ -1263,155 +1134,25 @@ void websocket_client::ReverseControl(simapi *&p_api, SendAndConsumerArgs &args)
         return;
     }
 
-    httpclient http_cli_steering_data(args);
-    // 1.delete sim
-    http_cli_steering_data.do_delete(args.http_clear_simulator_url);
-    // std::cout << "================================ delete sim" << std::endl;
-    //  2.create sim
-    std::string dst_phy_id = "can1";
-    nlohmann::json jStart;
-    jStart["uuid"] = "abc1"; // args.http_box_start_url.substr(sStart, eStart-sStart).c_str(); // "abc1"
-    jStart["type"] = "CAN-SIM";
-    jStart["format"] = "DBC";
-    jStart["dst_phy_id"] = dst_phy_id.c_str();
-    jStart["file_path"] = args.dbc_json_filename.c_str();  //   "Fahrsimulator_PCAN_72.json";
-    jStart["file_src"] = "DATABASE";
-    std::string dataCreatesim(jStart.dump());
-    std::string boxURL = "/"; // "http://"+args.http_access_ip+":"+std::to_string(args.http_access_port);
-    http_cli_steering_data.do_post(dataCreatesim, boxURL);
-    // std::cout << "================================ create sim" << jStart.dump() << std::endl;
-    // return;
+    ZDAPI::BoxAPI zdBoxAPI = ZDAPI::BoxAPI(args);
+    zdBoxAPI.deleteSimulation(httpCli);
+    zdBoxAPI.createSimulation(httpCli);
+    zdBoxAPI.activateMsgID(httpCli);
 
-    //  3.activate sim
-    http_cli_steering_data.do_post("", args.http_box_activate_url+"512");
-    http_cli_steering_data.do_post("", args.http_box_activate_url+"513");
-    // std::cout << "================================ sctivate sim" << std::endl;
 
-    // 4.init:quit error
-    std::vector<SIGNAL_t> signal_data_512_quit_error = {
-        {"ControlWord", "15"},
-        {"ModeOfOperation", "1"},
-        {"AuxiliaryFunctions", "0"},
-        {"EndStopPosition", "360"},
-        {"PositionOffset", "220"},
-        {"TorqueLimitation", "20"},
-        {"PeakTorqueLimitation", "40"}
-        // {"ESP_v_Signal", "31", "0.31"},
-        // {"MO_Drehzahl_01", "720", "135"},
-        // {"ROU_Lenkradmoment_Summe", "0", "0"},
-        // {"FD_Gang", "0", "-1"},
-        // {"EPB_Status", "1", "1"},
-        // {"ESP_Bremsdruck", "321", "66.3"}
-        
-        
-        // {"ESP_v_Signal", "31", "0.31"},
-        // {"MO_Drehzahl_01", "180", "45"},
-        // {"ROU_Lenkradmoment_Summe", "0", "0"},
-        // {"FD_Gang", "4", "3"},
-        // {"EPB_Status", "1", "1"},
-        // {"ESP_Bremsdruck", "80", "-6"}
-    };
 
-    nlohmann::json j_quit_error = signal_data_512_quit_error;
-    // std::cout << "-------------- signal_data_512_quit_error : " << j_quit_error.dump() << std::endl;
-    std::string modify_data_512_url = modify_data_url(args.http_modify_data_url, 512);
-    http_cli_steering_data.do_put(j_quit_error.dump(), modify_data_512_url);
-    // std::cout << "================================ quite error" << std::endl;
-    http_cli_steering_data.do_post("", args.http_box_start_url);
-    // std::cout << "================================ start sim" << std::endl;
+    zdBoxAPI.steeringQuitError(httpCli);
+    
+    httpCli.do_post("", args.http_box_start_url);
     std::this_thread::sleep_for(std::chrono::seconds(2));
-    // 5. init:ready
-    std::vector<SIGNAL_t> signal_data_512_off_ready = {
-        {"ControlWord", "2"},
-        {"ModeOfOperation", "1"},
-        {"AuxiliaryFunctions", "0"},
-        {"EndStopPosition", "540"},
-        {"PositionOffset", "220"},
-        {"TorqueLimitation", "20"},
-        {"PeakTorqueLimitation", "40"}
-
-        // {"ESP_v_Signal", "18", "0.18"},
-        // {"MO_Drehzahl_01", "720", "135"},
-        // {"ROU_Lenkradmoment_Summe", "221", "221"},
-        // {"FD_Gang", "0", "-1"},
-        // {"EPB_Status", "1", "1"},
-        // {"ESP_Bremsdruck", "321", "66.3"}
-        
-        // {"ESP_v_Signal", "18", "0.18"},
-        // {"MO_Drehzahl_01", "180", "45"},
-        // {"ROU_Lenkradmoment_Summe", "0", "0"},
-        // {"FD_Gang", "4", "3"},
-        // {"EPB_Status", "1", "1"},
-        // {"ESP_Bremsdruck", "80", "-6"}
-    };
-    nlohmann::json j_off_ready = signal_data_512_off_ready;
-    // std::cout << "-------------- signal_data_512_off_ready : " << j_off_ready.dump() << std::endl;
-    http_cli_steering_data.do_put(j_off_ready.dump(), modify_data_512_url);
-    // std::cout << "================================ off ready" << std::endl;
+    zdBoxAPI.steeringReady(httpCli);
     std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    // 6.init:on
-    std::vector<SIGNAL_t> signal_data_512_ready_on = {
-        {"ControlWord", "4"},
-        {"ModeOfOperation", "1"},
-        {"AuxiliaryFunctions", "0"},
-        {"EndStopPosition", "360"},
-        {"PositionOffset", "220"},
-        {"TorqueLimitation", "20"},
-        {"PeakTorqueLimitation", "40"}
-
-        // {"ESP_v_Signal", "20", "0.2"},
-        // {"MO_Drehzahl_01", "720", "135"},
-        // {"ROU_Lenkradmoment_Summe", "221", "221"},
-        // {"FD_Gang", "0", "-1"},
-        // {"EPB_Status", "1", "1"},
-        // {"ESP_Bremsdruck", "321", "66.3"}
-        
-        // {"ESP_v_Signal", "20", "0.2"},
-        // {"MO_Drehzahl_01", "180", "45"},
-        // {"ROU_Lenkradmoment_Summe", "0", "0"},
-        // {"FD_Gang", "4", "3"},
-        // {"EPB_Status", "1", "1"},
-        // {"ESP_Bremsdruck", "80", "-6"}
-        
-    };
-    nlohmann::json j_ready_on = signal_data_512_ready_on;
-    // std::cout << "-------------- signal_data_512_ready_on : " << j_ready_on.dump() << std::endl;
-    http_cli_steering_data.do_put(j_ready_on.dump(), modify_data_512_url);
-    // std::cout << "================================ ready on" << std::endl;
+    zdBoxAPI.steeringOn(httpCli);
     std::this_thread::sleep_for(std::chrono::seconds(8));
 
 
-    // long long first_time=0;
-    // while(true){
-    //     if (!myControlQueue.empty())
-    //     {
-    //         std::cout << " ------------------------- 111111: " << std::endl;
 
-    //         Control_t ctrl;
-    //         std::lock_guard<std::mutex> locker(mMutex_control);
-    //         ctrl = myControlQueue.top();
-    //         // std::cout<< ctrl.steering<<std::endl;
-    //         myControlQueue.pop();
-
-    //         std::cout << " ------------------------- : " << ctrl.unnormalized_steering << std::endl;
-    //         if (std::abs(ctrl.unnormalized_steering) < 1000.0)
-    //         {
-    //             if(first_time==0){
-    //                 first_time=ctrl.timestamp;
-    //             }
-    //             auto time=ctrl.timestamp;
-    //             if(time-first_time>2000){
-    //                 break;
-    //             }
-    //         }else{
-    //             first_time=0;
-    //         }
-    //     }
-    //     std::this_thread::sleep_for(std::chrono::seconds(1));
-    // }
-
-    signal_data_512_ready_on = {
+    nlohmann::json signal_data_512_ready_on = {
         {"ControlWord", "4"},
         {"ModeOfOperation", "1"},
         {"AuxiliaryFunctions", "0"},
@@ -1420,33 +1161,10 @@ void websocket_client::ReverseControl(simapi *&p_api, SendAndConsumerArgs &args)
         {"TorqueLimitation", "80"},
         {"PeakTorqueLimitation", "80"}
     };
-    j_ready_on = signal_data_512_ready_on;
-    // std::cout << "-------------- signal_data_512_ready_on : " << j_ready_on.dump() << std::endl;
-    http_cli_steering_data.do_put(j_ready_on.dump(), modify_data_512_url);
-    // std::cout << "================================ ready on" << std::endl;
-   
-    // std::cout << "================================================================" << std::endl;
-    // // return;
-    // // std::cout << "*******************************************************************************" << std::endl;
-
-    std::vector<SIGNAL_t> signal_data_513_steering_param = {
-        // {"FD_Federweg_HL", "0", "0"},
-        // {"FD_Federweg_HR", "253", "-0.3"},
-        // {"FD_Federweg_VL", "0", "0"},
-        // {"FD_Federweg_VR", "0", "0"},
-        // {"SARA_Accel_X_r", "0", "-650.36"},
-        // {"SARA_Accel_Y_r", "0", "-652.36"}
-
-        {"DesiredTorque", "0"},
-        {"Friction", "0"},
-        {"Damping", "50"},
-        {"SpringStiffness", "30"}
-    };
-    nlohmann::json j_steering_param = signal_data_513_steering_param;
-    // std::cout << "-------------- signal_data_513_steering_param : " << j_steering_param.dump() << std::endl;
-    http_cli_steering_data.do_put(j_steering_param.dump(), args.http_modify_data_url);
-    std::cout << "================================ steering param : " << args.http_modify_data_url << std::endl;
-
+    nlohmann::json j_ready_on = signal_data_512_ready_on;
+    std::string modify_data_512_url = zdBoxAPI.modify_url(args.http_modify_data_url, 512);
+    httpCli.do_put(j_ready_on.dump(), modify_data_512_url);
+    zdBoxAPI.steeringIniParam(httpCli);
     std::this_thread::sleep_for(std::chrono::seconds(3));
     
     float target_angle = 0.0;
@@ -1527,7 +1245,7 @@ void websocket_client::ReverseControl(simapi *&p_api, SendAndConsumerArgs &args)
         // std::cout << "timestamp : " << timestamp << ", angle steering : " << target_angle << std::endl;
         nlohmann::json j_steering_data = signal_data_513_steering_data;
         // std::cout << "-------------- signal_data_513_steering_data : " << j_steering_data.dump() << std::endl;
-        http_cli_steering_data.do_put(j_steering_data.dump(), args.http_modify_data_url);
+        httpCli.do_put(j_steering_data.dump(), args.http_modify_data_url);
         std::cout << "================================ steering data" << std::endl;
         
         std::this_thread::yield();

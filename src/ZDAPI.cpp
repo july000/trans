@@ -1,6 +1,8 @@
 #include "zd/ZDAPI.h"
-#include "websocketpp/config/asio_no_tls_client.hpp"
-#include "websocketpp/client.hpp"
+// #include "zd/MsgStruct.h"
+// #include "websocketpp/config/asio_no_tls_client.hpp"
+// #include "websocketpp/client.hpp"
+
 
 namespace ZDAPI
 {
@@ -132,45 +134,123 @@ namespace ZDAPI
         clear_simulator_url = args.http_clear_simulator_url;
         set_count_url = args.http_set_count_url;
         set_cycle_url = args.http_set_cycle_url;
+        dbc_json = args.dbc_json_filename;
     }
 
     BoxAPI::~BoxAPI()
     {
     }
 
-    void BoxAPI::DeleteSimulation()
+    void BoxAPI::deleteSimulation(httpclient& httpCli)
     {
-
+        httpCli.do_delete(clear_simulator_url);
     }
 
-    void DeleteSimulation()
+    void BoxAPI::stopAllSImulation(httpclient& httpCli)
     {
         
     }
 
-    void StopAllSImulation()
+    void BoxAPI::startSimulation(httpclient& httpCli)
     {
         
     }
 
-    void StartSimulation()
+    void BoxAPI::createSimulation(httpclient& httpCli)
     {
-        
+        std::string dst_phy_id = "can1";
+        nlohmann::json jStart;
+        jStart["uuid"] = "abc1"; // args.http_box_start_url.substr(sStart, eStart-sStart).c_str(); // "abc1"
+        jStart["type"] = "CAN-SIM";
+        jStart["format"] = "DBC";
+        jStart["dst_phy_id"] = dst_phy_id.c_str();
+        jStart["file_path"] = dbc_json.c_str();  //   "Fahrsimulator_PCAN_72.json";
+        jStart["file_src"] = "DATABASE";
+        std::string dataCreatesim(jStart.dump());
+        std::string boxURL = "/"; // "http://"+args.http_access_ip+":"+std::to_string(args.http_access_port);
+        httpCli.do_post(dataCreatesim, boxURL);
+
     }
 
-    void StopSImulation()
+    void BoxAPI::activateMsgID(httpclient& httpCli)
     {
-        
-    }
-
-    void ActivateMsgID()
-    {
-        
+        httpCli.do_post("", box_activate_url+"512");
+        httpCli.do_post("", box_activate_url+"513");
     } 
     
-    void ModifyMsgData()   
+    void BoxAPI::steeringQuitError(httpclient& httpCli)   
     {
-        
+        std::vector<SIGNAL_t> signal_data_512_quit_error = {
+            {"ControlWord", "15"},
+            {"ModeOfOperation", "1"},
+            {"AuxiliaryFunctions", "0"},
+            {"EndStopPosition", "360"},
+            {"PositionOffset", "220"},
+            {"TorqueLimitation", "20"},
+            {"PeakTorqueLimitation", "40"}
+        };
+
+    nlohmann::json j_quit_error = signal_data_512_quit_error;
+    std::string modify_data_512_url = modify_url(modify_data_url, 512);
+    httpCli.do_put(j_quit_error.dump(), modify_data_512_url);
+    }
+
+    void BoxAPI::steeringReady(httpclient& httpCli)   
+    {
+        std::vector<SIGNAL_t> signal_data_512_off_ready = {
+            {"ControlWord", "2"},
+            {"ModeOfOperation", "1"},
+            {"AuxiliaryFunctions", "0"},
+            {"EndStopPosition", "540"},
+            {"PositionOffset", "220"},
+            {"TorqueLimitation", "20"},
+            {"PeakTorqueLimitation", "40"}
+        };
+        nlohmann::json j_off_ready = signal_data_512_off_ready;
+        std::string modify_data_512_url = modify_url(modify_data_url, 512);
+        httpCli.do_put(j_off_ready.dump(), modify_data_512_url);
+    }
+
+    void BoxAPI::steeringOn(httpclient& httpCli)   
+    {
+        // 6.init:on
+        std::vector<SIGNAL_t> signal_data_512_ready_on = {
+            {"ControlWord", "4"},
+            {"ModeOfOperation", "1"},
+            {"AuxiliaryFunctions", "0"},
+            {"EndStopPosition", "360"},
+            {"PositionOffset", "220"},
+            {"TorqueLimitation", "20"},
+            {"PeakTorqueLimitation", "40"}
+        };
+        nlohmann::json j_ready_on = signal_data_512_ready_on;
+        std::string modify_data_512_url = modify_url(modify_data_url, 512);
+        httpCli.do_put(j_ready_on.dump(), modify_data_512_url);
+    }
+
+    void BoxAPI::steeringIniParam(httpclient& httpCli)
+    {
+        std::vector<SIGNAL_t> signal_data_513_steering_param = {
+            {"DesiredTorque", "0"},
+            {"Friction", "0"},
+            {"Damping", "50"},
+            {"SpringStiffness", "30"}
+        };
+        nlohmann::json j_steering_param = signal_data_513_steering_param;
+        httpCli.do_put(j_steering_param.dump(), modify_data_url);
+    }
+
+    std::string BoxAPI::modify_url(std::string ori_url, int number) {
+        std::string numberStr = std::to_string(number);
+        size_t startPos = ori_url.find("513");
+
+        if(startPos != std::string::npos)
+            ori_url.replace(startPos, 3, numberStr);
+
+        // std::cout << "New URL: " << ori_url << std::endl;
+        return ori_url;
     }
 }
+
+
 
