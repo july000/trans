@@ -113,6 +113,9 @@ SendAndConsumerArgs::SendAndConsumerArgs()
 	http_set_cycle_url = config.ReadString("HTTP", "HTTP_Client_SetCycle", "");
   http_get_data_529_url = config.ReadString("HTTP", "HTTP_Client_GetData", "");
 
+  can_dev_t = config.ReadString("CAN", "CAN_T", "can0");
+  can_dev_r = config.ReadString("CAN", "CAN_R", "can1");
+
   // Config ASC
   asc_filename = config.ReadString("ASC", "FILENAME", "");
   dbc_json_filename = config.ReadString("DBC", "FILENAME", "Fahrsimulator_PCAN_72_wheel.json");

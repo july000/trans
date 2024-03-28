@@ -14,9 +14,6 @@
 // #include "zd/ZDBOX2WebSocketAPI.h"
 #include "client.h"
 
-// extern void run_websocket_client(SendAndConsumerArgs &args);
-// extern void ConsumeQueueData(simapi &api);
-
 int main(int argc, char* argv[])
 {
   SendAndConsumerArgs args;
@@ -24,7 +21,7 @@ int main(int argc, char* argv[])
   httpclient httpCli(args);
 
   simapi *p_api = nullptr;
-  std::thread websocket_client_reverse_control = std::thread(std::bind(&websocket_client::ReverseControl, &wsC, std::ref(httpCli), std::ref(p_api), std::ref(args)));
+  std::thread websocket_client_reverse_control = std::thread(std::bind(&websocket_client::ReverseControlByPCAN, &wsC, std::ref(p_api), std::ref(args)));
   simapi &&api = RunSimOneAPI(args);
   p_api = &api;
 
@@ -122,24 +119,6 @@ int main(int argc, char* argv[])
 
       break;
     }
-
-    // try
-    // {
-    //   p.SendCarGate(api);
-    //   p.SendAIR(api);
-    //   p.SendVehicleMoving(api);
-    //   p.SendNIO(api);
-    //   p.SendLaneInfo(api);
-    //   p.SendACC(api);
-    //   p.SendCAR(api);
-    //   p.SendAIO(api);
-    //   p.SendLAB(api);
-    //   p.SendDriveSelect(api);
-    // }
-    // catch (MQException &e)
-    // {
-    //   std::cout << e << endl;
-    // }
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }

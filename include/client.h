@@ -53,6 +53,7 @@ public:
     void Timeout(boost::asio::deadline_timer *pt, const boost::system::error_code &ec);
     void ConsumeQueueData(simapi &api, SendAndConsumerArgs &args);
     void ReverseControl(httpclient& httpCli, simapi *&p_api, SendAndConsumerArgs &args);
+    void ReverseControlByPCAN(simapi *&p_api, SendAndConsumerArgs &args);
 
     void run_websocket_client(SendAndConsumerArgs &args);
 

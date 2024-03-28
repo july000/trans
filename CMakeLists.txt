@@ -17,7 +17,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/include/rocket) 
 include_directories(${PROJECT_SOURCE_DIR}/include/simone)
 include_directories(${PROJECT_SOURCE_DIR}/include/http)
-include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${PROJECT_SOURCE_DIR}/include/dbc)
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 set(ROCKETMQ_LIBRARIES librocketmq.a)

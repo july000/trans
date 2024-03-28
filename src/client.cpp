@@ -2,6 +2,7 @@
 #include "http_client.h"
 #include "client.h"
 #include "PID.h"
+#include "can_io.h"
 
 // websocket
 client websocket_client::c;
@@ -1203,7 +1204,6 @@ void websocket_client::ReverseControl(httpclient& httpCli, simapi *&p_api, SendA
         }
         if (!p_api)
         {
-            std::cout << "---------------------------------- error " << std::endl;
             continue;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -1248,6 +1248,165 @@ void websocket_client::ReverseControl(httpclient& httpCli, simapi *&p_api, SendA
         httpCli.do_put(j_steering_data.dump(), args.http_modify_data_url);
         std::cout << "================================ steering data" << std::endl;
         
+        std::this_thread::yield();
+    }
+
+}
+
+
+void websocket_client::ReverseControlByPCAN(simapi *&p_api, SendAndConsumerArgs &args)
+{
+    std::cout << "case type : " << args.simone_case_type << std::endl;
+    if (args.simone_case_type != 2)
+    {
+        return;
+    }
+
+    SocketCAN Can_IO(args.can_dev_t.c_str(), args.can_dev_r.c_str());
+
+    struct can_frame frame_send;
+    struct senso__wheel_control_module_control_t can_control_module;
+    uint8_t buffer[8];
+    int size = 0;
+
+    // ------------ Steering Wheel Init ------------
+    SocketCAN::SocketCAN_Control_Module ctl_module;
+    ctl_module = {15, 1, 0, 360, 220, 20, 40}; // quit error
+    Can_IO.Set_Control_Module(can_control_module, ctl_module);
+    size = senso__wheel_control_module_control_pack(buffer, &can_control_module, sizeof(buffer));
+    frame_send.can_id = 0x200;
+    frame_send.can_dlc = size;
+    memcpy(frame_send.data, buffer, size);
+    Can_IO.CAN_Write(frame_send);
+
+    // ------------ ready ------------
+    memset(&frame_send, 0, sizeof(frame_send));
+    memset(&buffer, 0, sizeof(buffer));
+    memset(&can_control_module, 0, sizeof(can_control_module));
+    memset(&ctl_module, 0, sizeof(ctl_module));
+    ctl_module = {2, 1, 0, 540, 220, 20, 40};
+    Can_IO.Set_Control_Module(can_control_module, ctl_module);
+    size = senso__wheel_control_module_control_pack(buffer, &can_control_module, sizeof(buffer));
+    frame_send.can_id = 0x200;
+    frame_send.can_dlc = size;
+    memcpy(frame_send.data, buffer, size);
+    Can_IO.CAN_Write(frame_send);
+
+    // ------------ on ------------
+    memset(&frame_send, 0, sizeof(frame_send));
+    memset(&buffer, 0, sizeof(buffer));
+    memset(&can_control_module, 0, sizeof(can_control_module));
+    memset(&ctl_module, 0, sizeof(ctl_module));
+    ctl_module = {4, 1, 0, 540, 220, 20, 40};
+    Can_IO.Set_Control_Module(can_control_module, ctl_module);
+    size = senso__wheel_control_module_control_pack(buffer, &can_control_module, sizeof(buffer));
+    frame_send.can_id = 0x200;
+    frame_send.can_dlc = size;
+    memcpy(frame_send.data, buffer, size);
+    Can_IO.CAN_Write(frame_send);
+
+    std::this_thread::sleep_for(std::chrono::seconds(8));
+
+    // ------------ shack-proof ------------
+    memset(&frame_send, 0, sizeof(frame_send));
+    memset(&buffer, 0, sizeof(buffer));
+    memset(&can_control_module, 0, sizeof(can_control_module));
+    memset(&ctl_module, 0, sizeof(ctl_module));
+    ctl_module = {4, 1, 0, 540, 220, 80, 80};
+    Can_IO.Set_Control_Module(can_control_module, ctl_module);
+    size = senso__wheel_control_module_control_pack(buffer, &can_control_module, sizeof(buffer));
+    frame_send.can_id = 0x200;
+    frame_send.can_dlc = size;
+    memcpy(frame_send.data, buffer, size);
+    Can_IO.CAN_Write(frame_send);
+
+    // ------------ Drive ------------
+    static PID posPID, spdPID;
+    posPID.SetPID(100, 0, 0);
+    spdPID.SetPID(1, 0.0, 0);
+
+    float target_angle = 0.0;
+    float target_angle_pre = 0.0;
+    long long timestamp_pre = 0;
+    long long timestamp = 0;
+
+    // std::ofstream log_sim, log_web;
+    // log_sim.open("log_sim.txt", std::ios::out | std::ios::trunc);
+    // log_sim << std::fixed << std::setprecision(8);
+    // log_web.open("log_web.txt", std::ios::out | std::ios::trunc);
+    // log_web << std::fixed << std::setprecision(10);
+
+    struct senso__wheel_normal_mode_desired_values_t steering;
+    uint8_t steering_buffer[8];
+    struct can_frame frame_steering_send;
+
+    struct senso__wheel_normal_mode_actual_values_t steering_resp;
+    struct can_frame frame_steering_recv;
+
+    while (true)
+    {
+        if (!p_api)
+        {
+            continue;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        // std::unique_ptr<SimOne_Data_Vehicle_Extra> pVehExtraState = std::make_unique<SimOne_Data_Vehicle_Extra>();
+        // if (p_api->SimAPI_GetVehicleState(pVehExtraState.get()))
+        {
+            std::unique_ptr<SimOne_Data_Gps> pGps = std::make_unique<SimOne_Data_Gps>();
+            if (p_api->SimAPI_GPS(pGps.get()))
+            {   
+                timestamp = pGps->timestamp;
+                target_angle = pGps->steering;
+            }
+            // double target_angle1 = pVehExtraState->extra_states[ESimOne_Data_Vehicle_State_SO_Steer_SW];
+
+            if (timestamp_pre == 0)
+            {
+                timestamp_pre = timestamp;
+                target_angle_pre = target_angle;
+                continue;
+            }
+            if (timestamp_pre == timestamp)
+            {
+                continue;
+            }
+            // std::cout << "-------------- target_angle_pre : " << target_angle_pre << ", target_angle : " << target_angle << std::endl;
+            // std::cout << "-------------- deg/s :" << (target_angle - target_angle_pre) / (timestamp - timestamp_pre)*1000.0 << std::endl; 
+            float target_spd = (target_angle - target_angle_pre)/(timestamp - timestamp_pre)*1000.0*60.0/360.0;
+            // std::cout << "-------------- rpm :" << target_spd << std::endl; 
+
+            while(!Can_IO.CAN_Read(frame_steering_recv, 0x211))
+            {
+                std::this_thread::yield();
+            }
+            int res = senso__wheel_normal_mode_actual_values_unpack(&steering_resp, frame_steering_recv.data, sizeof(frame_steering_recv.data));
+            double position = senso__wheel_normal_mode_actual_values_nm_actual_position_decode(steering_resp.nm_actual_position);
+            double vel = senso__wheel_normal_mode_actual_values_nm_actual_velocity_decode(steering_resp.nm_actual_velocity);
+
+            // std::cout << "-------- steering_angle : " << position << ", steering_speed : " << vel << std::endl;
+            double spdPIDRet = SteeringFollow(vel, position, target_angle, target_spd, posPID, spdPID, 1.0);
+            // std::cout << "============== time :" << timestamp <<std::endl;
+            // std::cout << "============= frame :" << frame_cur <<std::endl;
+
+            timestamp_pre = timestamp;
+            target_angle_pre = target_angle;
+            
+            memset(&steering, 0, sizeof(steering));
+            memset(&steering_buffer, 0, sizeof(steering_buffer));
+            memset(&frame_steering_send, 0, sizeof(frame_steering_send));
+            steering.desired_torque = senso__wheel_normal_mode_desired_values_desired_torque_encode(int(spdPIDRet));
+            steering.friction = senso__wheel_normal_mode_desired_values_friction_encode(0);
+            steering.damping = senso__wheel_normal_mode_desired_values_damping_encode(5);
+            steering.spring_stiffness = senso__wheel_normal_mode_desired_values_spring_stiffness_encode(30);
+            int steering_data_size = senso__wheel_normal_mode_desired_values_pack(steering_buffer, &steering, sizeof(steering_buffer));
+            
+            frame_steering_send.can_id = 0x201;
+            frame_steering_send.can_dlc = steering_data_size;
+            memcpy(frame_steering_send.data, steering_buffer, steering_data_size);
+            Can_IO.CAN_Write(frame_steering_send);
+        }
         std::this_thread::yield();
     }
 

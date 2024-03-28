@@ -79,6 +79,9 @@ struct SendAndConsumerArgs {
 
   std::string asc_filename;
   std::string dbc_json_filename;
+
+  std::string can_dev_t;
+  std::string can_dev_r;
 };
 
 simapi RunSimOneAPI(SendAndConsumerArgs &args);
